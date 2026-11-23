@@ -1,4 +1,5 @@
-APK
+
+name: Build HoroAI APK
 
 on:
   workflow_dispatch:
@@ -26,11 +27,12 @@ jobs:
           gradle-version: '8.9'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Android components
         run: |
-          sdkmanager 'platforms;android-35' \
+          sdkmanager --install \
+            'platforms;android-35' \
             'build-tools;35.0.0' \
             'ndk;27.2.12479018' \
             'cmake;3.22.1'
@@ -38,7 +40,12 @@ jobs:
       - name: Extract Android project
         run: |
           mkdir -p _source
-          unzip -q HoroAI-Private-LocalAI-Source.zip -d _source
+          ZIP_FILE=$(find . -name 'HoroAI-Private-LocalAI-Source.zip' -print -quit)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Source ZIP not found"
+            exit 1
+          fi
+          unzip -q "$ZIP_FILE" -d _source
           PROJECT_DIR=$(find _source -type f -path '*/app/build.gradle.kts' -print -quit | sed 's#/app/build.gradle.kts##')
           if [ -z "$PROJECT_DIR" ]; then
             echo "Android project not found in ZIP"
