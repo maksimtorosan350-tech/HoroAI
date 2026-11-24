@@ -1,4 +1,3 @@
-
 name: Build HoroAI APK
 
 on:
@@ -41,17 +40,34 @@ jobs:
         run: |
           mkdir -p _source
           ZIP_FILE=$(find . -name 'HoroAI-Private-LocalAI-Source.zip' -print -quit)
+
           if [ -z "$ZIP_FILE" ]; then
             echo "Source ZIP not found"
             exit 1
           fi
+
           unzip -q "$ZIP_FILE" -d _source
+
           PROJECT_DIR=$(find _source -type f -path '*/app/build.gradle.kts' -print -quit | sed 's#/app/build.gradle.kts##')
+
           if [ -z "$PROJECT_DIR" ]; then
             echo "Android project not found in ZIP"
             exit 1
           fi
+
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Remove biometric login
+        run: |
+          mkdir -p "$PROJECT_DIR/app/src/main/java/ai/horoai/app"
+          cp MainActivity.kt "$PROJECT_DIR/app/src/main/java/ai/horoai/app/MainActivity.kt"
+
+          if grep -q "BiometricPrompt" "$PROJECT_DIR/app/src/main/java/ai/horoai/app/MainActivity.kt"; then
+            echo "Biometric code still exists"
+            exit 1
+          fi
+
+          echo "Biometric login removed successfully"
 
       - name: Build llama.cpp
         run: |
