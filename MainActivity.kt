@@ -2,9 +2,6 @@ package ai.horoai.app
 
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
-import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -51,39 +48,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         val secure = SecureStore(applicationContext)
-        var unlocked by mutableStateOf(false)
-        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or
-            BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        val biometricManager = BiometricManager.from(this)
-        if (biometricManager.canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS) {
-            val prompt = BiometricPrompt(this, ContextCompat.getMainExecutor(this),
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        unlocked = true
-                    }
-                })
-            prompt.authenticate(BiometricPrompt.PromptInfo.Builder()
-                .setTitle("HoroAI Private")
-                .setSubtitle("Подтверди, что это ты")
-                .setAllowedAuthenticators(authenticators)
-                .build())
-        } else {
-            unlocked = true // Device has no supported system authentication; local app data remains encrypted.
-        }
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(
                 background = Night, surface = Color(0xFF171B2D),
                 primary = Violet, secondary = Aqua,
                 onBackground = Color.White, onSurface = Color.White
             )) {
-                if (unlocked) HoroApp(secure) else LockScreen { 
-                    val prompt = BiometricPrompt(this, ContextCompat.getMainExecutor(this),
-                        object : BiometricPrompt.AuthenticationCallback() {
-                            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) { unlocked = true }
-                        })
-                    prompt.authenticate(BiometricPrompt.PromptInfo.Builder().setTitle("HoroAI Private")
-                        .setSubtitle("Подтверди, что это ты").setAllowedAuthenticators(authenticators).build())
-                }
+                HoroApp(secure)
             }
         }
     }
@@ -120,20 +91,6 @@ class HoroViewModel(private val store: SecureStore, private val appContext: andr
             store.saveHistory(messages)
             status = if (ModelManager.isReady(appContext)) "Локальная модель активна" else "Нужно скачать модель"
             busy = false
-        }
-    }
-}
-
-@Composable
-private fun LockScreen(onUnlock: () -> Unit) {
-    Box(Modifier.fillMaxSize().background(Night), contentAlignment = Alignment.Center) {
-        GlassCard(Modifier.fillMaxWidth().padding(24.dp)) {
-            Icon(Icons.Default.AutoAwesome, null, tint = Violet, modifier = Modifier.size(42.dp))
-            Spacer(Modifier.height(12.dp))
-            Text("HoroAI Private", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("Личное пространство защищено", color = Muted, fontSize = 13.sp)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) { Text("Разблокировать") }
         }
     }
 }
@@ -285,7 +242,7 @@ fun SettingsPanel(store: SecureStore, onClose: () -> Unit, onClearHistory: () ->
         GlassCard(Modifier.fillMaxWidth()) {
             Text("ПРИВАТНОСТЬ", color = Aqua, fontWeight = FontWeight.Bold, fontSize = 10.sp)
             Spacer(Modifier.height(6.dp))
-            Text("• Только текст, без микрофона и аудио\n• Модель работает локально через llama.cpp\n• Переписка не отправляется на сервер\n• История шифруется AES-GCM через Android Keystore\n• Вход защищён системной биометрией/блокировкой\n• Модель не работает в фоне", color = Muted, fontSize = 12.sp, lineHeight = 19.sp)
+            Text("• Только текст, без микрофона и аудио\n• Модель работает локально через llama.cpp\n• Переписка не отправляется на сервер\n• История шифруется AES-GCM через Android Keystore\n• Вход в приложение без пароля и отпечатка пальца\n• Модель не работает в фоне", color = Muted, fontSize = 12.sp, lineHeight = 19.sp)
         }
     }
 }
